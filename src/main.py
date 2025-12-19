@@ -1,74 +1,66 @@
-def main():
-    """
-    Главная функция запуска приложения.
-    """
-    print("---------------------------------------")
-    print("Привет! Это мой генератор безопасных паролей")
-    print("Приложение запущено и готово к работе.")
-    print("---------------------------------------")
-
-if __name__ == "__main__":
-    main()
-
 import random
 import string
+import json
+import os
+
+# Имя файла, где будут лежать пароли
+FILE_PATH = "passwords.json"
 
 def generate_password(length):
-    """Генерирует случайную строку из букв и цифр."""
-    characters = string.ascii_letters + string.digits + string.punctuation
-    password = ''.join(random.choice(characters) for _ in range(length))
-    return password
+    chars = string.ascii_letters + string.digits + string.punctuation
+    return "".join(random.choice(chars) for _ in range(length))
 
-def add_entry(history):
-    """Запрашивает данные у пользователя и добавляет новый пароль в историю."""
-    service = input("Для какого сервиса пароль? (например, VK, Google): ")
+def load_data():
+    """Загружает данные из файла. Если файла нет, возвращает пустой список."""
+    if not os.path.exists(FILE_PATH):
+        return []
     try:
-        length = int(input("Введите длину пароля (например, 12): "))
-        password = generate_password(length)
-        
-        # Создаем словарь с данными
-        entry = {
-            "service": service,
-            "password": password
-        }
-        
-        history.append(entry)
-        print(f"\n[Успех] Пароль для {service} создан: {password}")
-    except ValueError:
-        print("\n[Ошибка] Длина должна быть числом!")
+        with open(FILE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
 
-def show_history(history):
-    """Выводит список всех созданных паролей."""
-    if not history:
-        print("\nИстория пока пуста.")
-        return
-
-    print("\n--- Ваша история паролей ---")
-    for i, item in enumerate(history, 1):
-        print(f"{i}. Сервис: {item['service']} | Пароль: {item['password']}")
-    print("----------------------------")
+def save_data(history):
+    """Сохраняет список паролей в файл JSON."""
+    with open(FILE_PATH, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=4)
 
 def main():
-    # Наш список для хранения данных в оперативной памяти
-    password_history = []
+    # ТЕПЕРЬ МЫ ЗАГРУЖАЕМ ДАННЫЕ ПРИ СТАРТЕ
+    history = load_data()
     
     while True:
-        print("\n--- МЕНЮ ---")
-        print("1. Сгенерировать новый пароль")
+        print("\n--- ГЕНЕРАТОР ПАРОЛЕЙ (С СОХРАНЕНИЕМ) ---")
+        print("1. Создать новый пароль")
         print("2. Показать историю")
         print("3. Выход")
         
-        choice = input("Выберите действие (1-3): ")
+        choice = input("Выберите действие: ")
         
         if choice == "1":
-            add_entry(password_history)
-        elif choice == "2":
-            show_history(password_history)
-        elif choice == "3":
-            print("Программа завершена. До встречи!")
-            break
-        else:
-            print("Неверный выбор, попробуйте снова.")
+            service = input("Для какого сервиса пароль?: ")
+            try:
+                length = int(input("Введите длину: "))
+                new_pass = generate_password(length)
+                history.append({"service": service, "password": new_pass})
+            
+            # СОХРАНЯЕМ СРАЗУ ПОСЛЕ СОЗДАНИЯ
+                save_data(history)
+                print(f"Готово! Ваш новый пароль: {new_pass}") # <-- ВОТ ЭТА СТРОКА
+                print(f"Пароль для {service} успешно записан в файл.")
 
+            except ValueError:
+                print("Ошибка: введите число для длины!")
+                
+        elif choice == "2":
+            print("\n--- ВАШИ ПАРОЛИ ---")
+            if not history:
+                print("Список пуст.")
+            for item in history:
+                print(f"Сервис: {item['service']} | Пароль: {item['password']}")
+                
+        elif choice == "3":
+            print("Данные сохранены. До встречи!")
+            break
 if __name__ == "__main__":
     main()
